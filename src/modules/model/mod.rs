@@ -5,4 +5,3 @@
 
 pub(crate) mod content;
 pub(crate) mod dict;
-pub(crate) mod png;
