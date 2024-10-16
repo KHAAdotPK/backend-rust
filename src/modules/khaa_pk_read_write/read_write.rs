@@ -3,9 +3,14 @@
     aEon@khaa.pk
  */
 
- use std::{path::Path, fs::{File, self}, io::{Read, Write}};
+ use std::{fs::{self, File}, io::{Read, Write}, path::Path};
  use crate::modules::model::content::{Content, ContentBody};
  
+ pub fn exists(name: &str) -> bool {
+
+    return Path::new(name).exists();  
+ }
+
  // pub fn read(&'static str)-> Content {
  pub fn read(name: &str) -> Content {
  

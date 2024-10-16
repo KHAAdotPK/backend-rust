@@ -4,17 +4,9 @@
  */
 
 use std::{str, net::TcpStream, io::{Read, Write}};
-use crate::modules::{model::{content::{Content, ContentBody}, dict::{Dict, DictBody}, png::{Png/*, PngBody*//*, ChunkIdat*/, Chunk}}, constants::{self, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, DEFAULT_PNG_BIT_DEPTH}};
+use crate::modules::{model::{content::{Content, ContentBody}, dict::{Dict, DictBody}}, constants::{self, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, DEFAULT_PNG_BIT_DEPTH}};
 
-use super::read_write::{read};
-
-/* Native function call */
-//extern {fn image(num: i32);}
-
-extern {
-    
-    fn bitmap_font(pixels: *mut u8, height: u32, width: u32);    
-}
+use super::read_write::{read, exists};
 
 pub fn get_dict(content: &Content) -> /*Vec<Vec<String>>*/ Dict {
 
@@ -256,108 +248,31 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
             match resource_uri_file[1].to_lowercase().as_str() {
 
                 "/favicon.ico" => {
+                    if exists(document_root[1].to_string().as_str()) {
 
-                     content = read((document_root[1].to_string() + "/favicon.ico").as_str());
-                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nContent-Type: image/x-icon\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
+                        content = read((document_root[1].to_string() + "/favicon.ico").as_str());
+                        Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nContent-Type: image/x-icon\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
+                    }
+                    else {
+
+                        content.set_content("<html><head><title>index.html</title></head><body><p>Internal server error.</p></body></html>");               
+                        Write::write_all(&mut stream, ("HTTP/1.1 500 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
+                    }
                 }
 
                 "/" | "/index.html" => {
-                                         
-                     content = read((document_root[1].to_string() + "/index.html").as_str());
-                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
-                }
-
-                "/graphpaper.html" => {
-
-                     content = read((document_root[1].to_string() + "/graphpaper.html").as_str());
-                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();                     
-                }
-
-                "/image.png" => {
-                    
-                     content = read((document_root[1].to_string() + "/image.png").as_str());
-                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
-                }
-
-                "/play.html" => {
-
-                    let resource_query_parameters = header_dict.find("RESOURCE_QUERY_PARAMETERS");
-
-                    if resource_query_parameters.len() > 1 {
-
-                        let resourec_query_parameters_clone = resource_query_parameters[1].clone();
-                        let key_vec = resourec_query_parameters_clone.split(&"=".to_string()).collect::<Vec<&str>>();
-
-                        if key_vec.len() > 1 {
-
-                            content.set_content(&key_vec[1]);
-
-                            let local_ihdr = Chunk {length: vec![0; 4], type_name: vec![0x49, 0x48, 0x44, 0x52], data: vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x03, 0x00, 0x00, 0x00], crc: vec![0; 4]};
-                            let local_plte = Chunk {length: vec![0; 4], type_name: vec![0x50, 0x4C, 0x54, 0x45], data: vec![0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00], crc: vec![0; 4]};
-                            let local_idat = Chunk {length: vec![0; 4], type_name: vec![0x49, 0x44, 0x41, 0x54], data: vec![0; (DEFAULT_IMAGE_WIDTH*DEFAULT_PNG_BIT_DEPTH)*DEFAULT_IMAGE_HEIGHT], crc: vec![0; 4]};
-                            let local_iend = Chunk {length: vec![0, 0, 0, 0], type_name: vec![0x49, 0x45, 0x4E, 0x44], data: Vec::new(), crc: vec![0; 4]};
-
-                            let mut png = Png {height: DEFAULT_IMAGE_HEIGHT, width: DEFAULT_IMAGE_WIDTH*DEFAULT_PNG_BIT_DEPTH, background: "blue".to_string(), foreground: "red".to_string(), signature: vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], ihdr: local_ihdr, plte: local_plte, idat: local_idat, iend: local_iend};
-
-                            png.generate_ihdr();
-                            png.generate_plte();
-                            png.generate_idat();                    
-                            png.generate_iend();
-                                        
-                            png.generate_image(document_root[1].to_string() + "/hoopla.png");
-
-                            //content = read((document_root[1].to_string() + "/hoopla.png").as_str());
-                            //Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
-                        } 
-                        else {
-
-                            content = read((document_root[1].to_string() + "/play.html").as_str());
-                            //Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Type: text/html\r\nContent-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
-                        }
-
-                        //println!("--------> > > > > > YES");
+                    if exists(document_root[1].to_string().as_str()) {
+                                           
+                         content = read((document_root[1].to_string() + "/index.html").as_str());
+                         Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
                     }
                     else {
 
-                        content = read((document_root[1].to_string() + "/play.html").as_str());
-                        //Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Type: text/html\r\nContent-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
-                    }
-
-                    //let resourec_query_parameters_clone = resource_query_parameters[1].clone();
-                    //let key_vec = resourec_query_parameters_clone.split(&"=".to_string()).collect::<Vec<&str>>();
-
-                    /*
-                    if key_vec.len() > 1 {
-
-                        content.set_content(&key_vec[1]);
-                    }
-                    else {
-
-                        content = read((document_root[1].to_string() + "/play.html").as_str());
-                    }
-                     */                   
-
-                    
-                    //content = read((document_root[1].to_string() + "/play.html").as_str());
-                    Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Type: text/html\r\nContent-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
-                    
-                    
-
-                    /*
-                        Sending the whole PNG
-                        What I found out that sending "Content-Type: image/png"(without the actual png image) would tell the browser that content is that so it acts like it has the content that big black background with very small white square in the middle
-                    
-                        //content = read((document_root[1].to_string() + "/hoopla.png").as_str());
-                        //Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();                    
-                     */
+                        content.set_content("<html><head><title>index.html</title></head><body><p>Internal server error.</p></body></html>");               
+                        Write::write_all(&mut stream, ("HTTP/1.1 500 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
+                    } 
                 }
-                                
-                "/scripts.js" => {
-                    
-                     content = read((document_root[1].to_string() + "/scripts.js").as_str());
-                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nContent-Type: text/javascript\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
-                }
-
+                                                                              
                 // When end-point is not available
                 _ => {
 
@@ -417,22 +332,7 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
                     let _body = header_dict.find("BODY");
 
                     //println!("graphpaper ..... {} = {}", _body[0], _body[1]);
-
-                    //println!("Yes the post received.");
-                    let local_ihdr = Chunk {length: vec![0; 4], type_name: vec![0x49, 0x48, 0x44, 0x52], data: vec![0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x03, 0x00, 0x00, 0x00], crc: vec![0; 4]};
-                    let local_plte = Chunk {length: vec![0; 4], type_name: vec![0x50, 0x4C, 0x54, 0x45], data: vec![0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0xFF, 0x00], crc: vec![0; 4]};
-                    let local_idat = Chunk {length: vec![0; 4], type_name: vec![0x49, 0x44, 0x41, 0x54], data: vec![0; (1424*1)*720], crc: vec![0; 4]};
-                    let local_iend = Chunk {length: vec![0, 0, 0, 0], type_name: vec![0x49, 0x45, 0x4E, 0x44], data: Vec::new(), crc: vec![0; 4]};
-                                         
-                    let mut png = Png {height: 720, width: 1424*1, background: "blue".to_string(), foreground: "red".to_string(), signature: vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], ihdr: local_ihdr, plte: local_plte, idat: local_idat, iend: local_iend};
-                     
-                    png.generate_ihdr();
-                    png.generate_plte();
-                    png.generate_idat();                    
-                    png.generate_iend();
-                                        
-                    png.generate_image(document_root[1].to_string() + "/hoopla.png");
-
+                    
                     /*
                     png.new();
                      */
