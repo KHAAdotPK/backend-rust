@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<!-- What the hell I'm doing here? I'm not a web developer -->
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Continue Page</title>
+        <script type="text/javascript">
+            //document.onkeydown = function(event) {
+            document.addEventListener("keydown", function(event) {    
+                //const key = event.key; // "ArrowRight", "ArrowLeft", "ArrowUp", or "ArrowDown"
+                switch (event.key) {
+                    case "ArrowLeft":
+                        // Left-key(37) pressed                        
+                        fetch("http://192.168.100.16:3968/test.html?key=37")
+                        .then (response => {
+                            /*
+                                The console.log(response) redirect message to that is the wohle response to the developers console.
+                                In the developers console(of developers tools) I found out that response is a composite type 
+                                and it has lot of properties like the one "conole.log(response.status)" and like the one
+                                "return response.text()" 
+                             */                                                  
+                            return response.text();
+                        }) 
+                        .then((data) => {
+                            
+                            document.getElementById("content").innerHTML = data;                            
+                        })
+                        .catch(error => {
+
+                            console.log("There was an error: ", error);
+                        });
+                    break;
+                    case "ArrowRight":
+                        // Right-key(39) pressed                        
+                        fetch("http://192.168.100.16:3968/test.html?key=39")
+                        .then (response => {
+                            
+                            return response.text();
+                        })
+                        .then((data) => {
+                            document.getElementById("content").innerHTML = data;
+
+                        })
+                        .catch(error => {
+
+                            console.log("There was an error: ", error);
+                        });
+                    break;
+                    case "ArrowUp":
+                        // Up-key(38) pressed
+                        fetch("http://192.168.100.16:3968/test.html?key=38")
+                        .then (response => {
+                            
+                            return response.text();
+                        })
+                        .then((data) => {
+                            document.getElementById("content").innerHTML = data;
+
+                        })
+                        .catch(error => {
+
+                            console.log("There was an error: ", error);
+                        });                                                 
+                    break;
+                    case "ArrowDown":
+                        // Down-key(40) pressed
+                        fetch("http://192.168.100.16:3968/test.html?key=40")
+                        .then (response => {
+                            
+                            return response.text();
+                        })
+                        .then((data) => {
+                            document.getElementById("content").innerHTML = data;
+
+                        })
+                        .catch(error => {
+
+                            console.log("There was an error: ", error);
+                        });
+                    break;
+            }});                                                         
+        </script>
+    </head>
+    <body>
+        <h1>Game Board...</h1>
+        <div id="content"></div>        
+    </body>
+</html>
