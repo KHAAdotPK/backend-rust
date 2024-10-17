@@ -25,6 +25,9 @@ The project is divided into several key modules:
 #### Foreign Function Interface (FFI) & Bindings
 This Rust server also includes **Rust-C bindings**, enabling the Rust code to interact with functions written in C. Through this setup, C functions can call C++ code located in dynamically linked libraries (DLL files), creating a robust foreign function interface (FFI) across multiple languages. This allows the server to leverage existing C/C++ libraries and functionalities directly within the Rust environment.
 
+#### Template Status
+This project is a **working template** of the actual chatbot server. While it is functional, it serves as a testing ground for various technologies being integrated, such as machine learning models and foreign function interfaces (FFI). The project is continuously evolving as new techniques and technologies are tested.
+
 #### License
 This project is governed by a license, the details of which can be located in the accompanying file named 'LICENSE.' Please refer to this file for comprehensive information.
 
