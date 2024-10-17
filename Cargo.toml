@@ -3,8 +3,8 @@ name = "khaa-pk"
 version = "0.1.0"
 edition = "2021"
 
-#[build-dependencies]
-#cc = "1.0.78"
+[build-dependencies]
+cc = "1.0.78"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

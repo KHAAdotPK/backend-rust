@@ -22,6 +22,9 @@ The project is divided into several key modules:
 5. `sundry.rs`
    - Handles connection, request and response details.
 
+#### Foreign Function Interface (FFI) & Bindings
+This Rust server also includes **Rust-C bindings**, enabling the Rust code to interact with functions written in C. Through this setup, C functions can call C++ code located in dynamically linked libraries (DLL files), creating a robust foreign function interface (FFI) across multiple languages. This allows the server to leverage existing C/C++ libraries and functionalities directly within the Rust environment.
+
 #### License
 This project is governed by a license, the details of which can be located in the accompanying file named 'LICENSE.' Please refer to this file for comprehensive information.
 
