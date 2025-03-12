@@ -34,11 +34,17 @@
 
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Targets" />
     
-    <Target Name="move" AfterTargets="AfterBuild" Condition="'$(ConfigurationType)'=='DynamicLibrary'">
-        <Move SourceFiles="$(Configuration)\$(TargetName).dll" DestinationFiles="$(TargetName).dll" />
-        <Move SourceFiles="$(Configuration)\$(TargetName).lib" DestinationFiles="$(TargetName).lib" />
+    <Target Name="move-or-copy" AfterTargets="AfterBuild" Condition="'$(ConfigurationType)'=='DynamicLibrary'">
+        <!-- <Move SourceFiles="$(Platform)\$(Configuration)\$(TargetName).dll" DestinationFiles=".\..\..\target\$(Configuration)\$(TargetName).dll" />
+        <Move SourceFiles="$(Platform)\$(Configuration)\$(TargetName).lib" DestinationFiles=".\..\..\target\$(Configuration)\$(TargetName).lib" /> -->
+
+        <Copy SourceFiles="$(Platform)\$(Configuration)\$(TargetName).dll" DestinationFiles="$(TargetName).dll" />
+        <Copy SourceFiles="$(Platform)\$(Configuration)\$(TargetName).lib" DestinationFiles="$(TargetName).lib" />
+        <Copy SourceFiles="$(Platform)\$(Configuration)\$(TargetName).dll" DestinationFiles=".\..\..\target\$(Configuration)\$(TargetName).dll" />
+        <Copy SourceFiles="$(Platform)\$(Configuration)\$(TargetName).lib" DestinationFiles=".\..\..\target\$(Configuration)\$(TargetName).lib" />
+
         <!-- <Copy SourceFiles="lib\zlib\zlib-master\Debug\zlibd.dll" DestinationFiles="zlibd.dll" />
         <Copy SourceFiles="lib\libpng\x64\Debug\libpng.dll" DestinationFiles="libpng.dll" /> -->
-        <Message Text="Moved executable file." Importance="high" />
+        <Message Text="Moved files." Importance="high" />
     </Target>
 </Project>
