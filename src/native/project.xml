@@ -12,7 +12,7 @@
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.default.props" />
     <PropertyGroup>
         <ConfigurationType>DynamicLibrary</ConfigurationType>               
-        <TargetName>clap</TargetName>
+        <TargetName>native-server</TargetName>
         <PlatformToolset>v143</PlatformToolset>
     </PropertyGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
