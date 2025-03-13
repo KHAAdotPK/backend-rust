@@ -8,13 +8,10 @@ use crate::modules::{model::{content::{Content, ContentBody}, dict::{Dict, DictB
 
 use super::read_write::{read, exists};
 
-/*
 extern {
     
     fn bitmap_font(pixels: *mut u8, height: u32, width: u32);    
 }
- */    
-
 
 pub fn get_dict(content: &Content) -> /*Vec<Vec<String>>*/ Dict {
 
@@ -184,7 +181,7 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
 
     let mut content = Content {content: Vec::new(), content_length: 0};
 
-    /*unsafe { bitmap_font( core::ptr::null_mut(), 0, 0); }*/
+    unsafe { bitmap_font( core::ptr::null_mut(), 0, 0); }
 
     let document_root = config_dict.find("DocumentRoot");
     if !(document_root.len() > 1) {
