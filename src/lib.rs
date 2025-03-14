@@ -1,6 +1,6 @@
 /*
     src/lib.rs
-    aEon@khaa.pk
+    Q@khaa.pk
  */
 
 mod modules;

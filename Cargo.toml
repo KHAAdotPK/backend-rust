@@ -2,6 +2,7 @@
 name = "khaa-pk"
 version = "0.1.0"
 edition = "2021"
+build="build.rs"
 
 [build-dependencies]
 cc = "1.0.78"
@@ -19,5 +20,6 @@ cc = "1.0.78"
 #flate2 = "1.0.25"
 # You would ... use regex::Regex
 #regex = "1.7.1"
+argsv = { path = "./argsv-rust/lib/rust/argsv/" }
 
 
