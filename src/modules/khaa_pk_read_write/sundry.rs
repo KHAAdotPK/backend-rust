@@ -353,9 +353,9 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
 
                     let _body = header_dict.find("BODY");
 
-                    println!("DISPLAY IS ..... {} = {}", _body[0], _body[1]);
+                    println!("{} = {}", _body[0], _body[1]);
                     
-                    content.set_content("[\"Post received.\"]");
+                    content.set_content("[\"data received.\"]");
                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
                 }
 
@@ -363,9 +363,9 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
 
                     // Handle unknown resource uri
 
-                    //let _body = header_dict.find("BODY");
+                    let _body = header_dict.find("BODY");
 
-                    //println!("DISPLAY IS ..... {} = {}", _body[0], _body[1]);
+                    println!("DISPLAY IS..... {} = {}", _body[0], _body[1]);
 
                     content.set_content("<p>The method you requested is currently being held captive by a group of mischievous monkeys, we're working on a rescue mission, try again later with a different method &#x1F609;</p>"); 
                     //content.set_content("[\"I'm sorry. The content you requested is currently on a top secret mission for the government. We can't reveal its current location but we can tell you that it's saving the world one byte at a time.\"]");
