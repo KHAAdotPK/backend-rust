@@ -11,6 +11,6 @@ pub const END_OF_SINGLE_HEADER_LINE_MARKER: &'static str =  "\r\n";
 pub const KEY_VALUE_DELIMITER: &'static str = ": ";
 pub const LINE_DELIMITER_SLASH_N: &'static str = "\n";
 pub const LINE_DELIMITER_SLASH_R: &'static str = "\r";
-pub const SIZE_OF_SINGLE_READ: usize = 2048;
+pub const SIZE_OF_SINGLE_READ: usize = 4096;
 pub const START_OF_BODY_MARKER: &'static str = "\r\n\r\n";
 

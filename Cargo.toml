@@ -19,7 +19,7 @@ cc = "1.0.78"
 #crc32fast = "1.3.2" 
 #flate2 = "1.0.25"
 # You would ... use regex::Regex
-#regex = "1.7.1"
+regex = "1.7.1"
 argsv = { path = "./argsv-rust/lib/rust/argsv/" }
 
 

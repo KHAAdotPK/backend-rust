@@ -5,6 +5,7 @@
 
 use std::{io::{Read, Write}, net::TcpStream, ptr::null, str};
 use crate::modules::{model::{content::{Content, ContentBody}, dict::{Dict, DictBody}}, constants::{self, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, DEFAULT_PNG_BIT_DEPTH}};
+use regex::bytes::Regex; // For byte string matching
 
 use super::read_write::{read, exists};
 
@@ -100,19 +101,88 @@ pub fn get_dict(content: &Content) -> /*Vec<Vec<String>>*/ Dict {
 fn get_header(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
 
     let mut buffer = [0; constants::SIZE_OF_SINGLE_READ];
-    let content: Content;
+    let mut content: Content;
+    let mut full_buffer = Vec::<u8>::new();
+    //let mut boundaries = Vec::new();
 
-    match stream.read(&mut buffer) {
+    content = Content {content: Vec::new(), content_length: 0};
 
-        Ok(size) => {
+     // This regex matches:
+    // ^--[a-zA-Z0-9]+(--)?$
+    // Where:
+    // ^-- = starting boundary marker
+    // [a-zA-Z0-9]+ = the actual boundary string
+    // (--)? = optional closing marker
+    //let re = Regex::new(r"(?m)^--[a-zA-Z0-9]+(--)$").unwrap();
+    //let re = Regex::new(r"(?m)^--[a-zA-Z0-9]+--$").unwrap();
+    let re = Regex::new(r"--AudioUploadBoundary\d+--\r\n$").unwrap();
+    let re_for_data_html = Regex::new(r"(?m)Address.SoundFileName=").unwrap();
 
-            content = Content {content: buffer.to_vec(), content_length: size};                
+    loop {        
+        match stream.read(&mut buffer) {
+
+            Ok(size) => {
+
+                //content = Content {content: buffer.to_vec(), content_length: size};
+                //full_buffer.extend_from_slice(&buffer[..size]);
+
+                println!("RAW BUFFER ({} bytes): {:?}", size, String::from_utf8_lossy(&buffer[..size]));
+
+                /*if (size == 0)
+                {
+                    return Dict::new();
+                }*/
+
+                full_buffer.extend_from_slice(&buffer[..size]);                
+            }
+
+            Err(_e) => {
+
+                return Dict::new();
+            }
         }
 
-        Err(_e) => {
+        //println!("RAW BUFFER ({} bytes): {:?}", size, String::from_utf8_lossy(&buffer[..size]));
 
-            return Dict::new();
+        /*for mat in re.find_iter(&full_buffer) {
+            boundaries.push(mat.start());
+        }*/
+
+        if re.is_match(&full_buffer) {
+
+            content = Content {content: full_buffer.clone(), content_length: full_buffer.len()};
+
+            println!("BROKEN BROKEN BROKEB");
+            break;
         }
+
+        //println!("Boundaries: {:?}", boundaries);
+        //println!("{}", boundaries.len());    
+
+        /*if boundaries.len() >= 1 {
+
+            content = Content {content: full_buffer.clone(), content_length: full_buffer.len()};
+            break;
+        }*/
+
+        if re_for_data_html.is_match(&full_buffer) {
+
+            content = Content {content: full_buffer.clone(), content_length: full_buffer.len()};
+            break;
+        }
+
+        /*for mat in re_for_data_html.find_iter(&full_buffer) {
+
+            content = Content {content: full_buffer.clone(), content_length: full_buffer.len()};
+            break;
+        }*/
+
+        // Check for header-body separator (double CRLF)
+        /*if full_buffer.windows(4).any(|w| w == b"\r\n\r\n") {
+
+            content = Content {content: full_buffer.clone(), content_length: full_buffer.len()};
+            break;
+        }*/
     }
         
     let mut dict = get_dict(&content);
@@ -357,6 +427,16 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
                     
                     content.set_content("[\"data received.\"]");
                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
+                }
+
+                "/multipart.html" => {
+
+                    let _body = header_dict.find("BODY");
+
+                    println!("{} = {}", _body[0], _body[1]);
+                    
+                    content.set_content("[\"multipart getting through.\"]");
+                    Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();                    
                 }
 
                 _ => {
