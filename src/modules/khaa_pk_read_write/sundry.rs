@@ -234,23 +234,32 @@ fn get_header(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
 
         return dict
     }
-
-    dict.find("Content-Length");
-
+    
     /*
         Now get body of this request
      */
-    let body = content.get_content().split(constants::START_OF_BODY_MARKER).collect::<Vec<&str>>();
+    /*let body = content.get_content().split(constants::START_OF_BODY_MARKER).collect::<Vec<&str>>();
     if !(body.len() > 1) {
+
+        return dict
+    }*/
+
+    let _number_of_bodyparts = content.get_content().split(constants::START_OF_BODY_MARKER).collect::<Vec<&str>>().len();
+
+    if !(_number_of_bodyparts > 1) {
 
         return dict
     }
 
-    for bodypart in content.get_content().split(constants::START_OF_BODY_MARKER).collect::<Vec<&str>>() {
+//println!("-->***********>>>>>>>>>>>> {}", content.get_content().split(constants::START_OF_BODY_MARKER).collect::<Vec<&str>>()[1..]);
 
-        //dict.update("BODY".to_string(), bodypart.to_string());
+    for bodypart in content.get_content().split(constants::START_OF_BODY_MARKER).collect::<Vec<&str>>().iter().skip(_number_of_bodyparts - 1) {
 
-        println!("--> {}", String::from_utf8_lossy(bodypart.as_bytes()));
+        dict.update("BODY".to_string(), bodypart.to_string());
+
+        //println!("-> {}", dict.find("Content-Length")[1]);
+
+        //println!("--> {}", String::from_utf8_lossy(bodypart.as_bytes()));
     }
             
     dict
@@ -434,10 +443,21 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
 
                 "/data.html" => {
 
-                    let _body = header_dict.find("BODY");
-
                     //println!("{} = {}", _body[0], _body[1]);
-                    
+
+                    let _keys = header_dict.keys();
+                    let _values = header_dict.values();
+
+                    //let _body = header_dict.find("BODY");
+                    //let _ct = header_dict.find("Content-Type");
+                    //let _cl = header_dict.find("Content-Length");
+
+                    //String::from_utf8_lossy(content.get_content().as_bytes())
+
+                    _keys.iter().for_each(|key| {
+                        println!("{} = {}", key, String::from_utf8_lossy(header_dict.find(key)[1].as_bytes()));
+                    });
+
                     content.set_content("[\"data received.\"]");
                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
                 }
@@ -447,12 +467,14 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
                     let _keys = header_dict.keys();
                     let _values = header_dict.values();
 
-                    let _body = header_dict.find("BODY");
-                    let _ct = header_dict.find("Content-Type");
-                    let _cl = header_dict.find("Content-Length");
+                    //let _body = header_dict.find("BODY");
+                    //let _ct = header_dict.find("Content-Type");
+                    //let _cl = header_dict.find("Content-Length");
+
+                    //String::from_utf8_lossy(content.get_content().as_bytes())
 
                     _keys.iter().for_each(|key| {
-                        println!("{} = {}", key, header_dict.find(key)[1]);
+                        println!("{} = {}", key, String::from_utf8_lossy(header_dict.find(key)[1].as_bytes()));
                     }); 
                                         
                     //println!("{} = {}", _ct[0], _ct[1]);
