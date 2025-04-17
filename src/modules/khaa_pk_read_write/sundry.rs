@@ -126,7 +126,7 @@ fn get_header(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
                 //content = Content {content: buffer.to_vec(), content_length: size};
                 //full_buffer.extend_from_slice(&buffer[..size]);
 
-                println!("RAW BUFFER ({} bytes): {:?}", size, String::from_utf8_lossy(&buffer[..size]));
+                /*println!("RAW BUFFER ({} bytes): {:?}", size, String::from_utf8_lossy(&buffer[..size]));*/
 
                 /*if (size == 0)
                 {
@@ -152,7 +152,9 @@ fn get_header(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
 
             content = Content {content: full_buffer.clone(), content_length: full_buffer.len()};
 
-            println!("BROKEN BROKEN BROKEB");
+            println!("{}", String::from_utf8_lossy(content.get_content().as_bytes()));
+
+            /*println!("BROKEN BROKEN BROKEB");*/
             break;
         }
 
@@ -233,6 +235,8 @@ fn get_header(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
         return dict
     }
 
+    dict.find("Content-Length");
+
     /*
         Now get body of this request
      */
@@ -242,7 +246,12 @@ fn get_header(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
         return dict
     }
 
-    dict.update("BODY".to_string(), body[1].to_string());
+    for bodypart in content.get_content().split(constants::START_OF_BODY_MARKER).collect::<Vec<&str>>() {
+
+        //dict.update("BODY".to_string(), bodypart.to_string());
+
+        println!("--> {}", String::from_utf8_lossy(bodypart.as_bytes()));
+    }
             
     dict
 }
@@ -269,7 +278,11 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
                 
     let keys = header_dict.keys();
     let values = header_dict.values();
+
     
+    //println!("Keys: {:?}, Values: {:?}", keys, values);
+
+
     if keys.len() != values.len() {
                 
         /*
@@ -423,7 +436,7 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
 
                     let _body = header_dict.find("BODY");
 
-                    println!("{} = {}", _body[0], _body[1]);
+                    //println!("{} = {}", _body[0], _body[1]);
                     
                     content.set_content("[\"data received.\"]");
                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
@@ -431,10 +444,22 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
 
                 "/multipart.html" => {
 
-                    let _body = header_dict.find("BODY");
+                    let _keys = header_dict.keys();
+                    let _values = header_dict.values();
 
-                    println!("{} = {}", _body[0], _body[1]);
+                    let _body = header_dict.find("BODY");
+                    let _ct = header_dict.find("Content-Type");
+                    let _cl = header_dict.find("Content-Length");
+
+                    _keys.iter().for_each(|key| {
+                        println!("{} = {}", key, header_dict.find(key)[1]);
+                    }); 
+                                        
+                    //println!("{} = {}", _ct[0], _ct[1]);
+                    //println!("{} = {}", _cl[0], _cl[1]);
                     
+                    // Parse the body
+                                        
                     content.set_content("[\"multipart getting through.\"]");
                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();                    
                 }

@@ -10,7 +10,7 @@
  */
 void bitmap_font(unsigned char* pixels, unsigned int height, unsigned int width)
 {
-    printf("Hola......\n");
+    /*printf("Hola......\n");*/
 
     called_from_c();
 }

@@ -7,5 +7,5 @@
 
 EXPORT_IMPORT void called_from_c(void)
 {
-    printf("Yes.......\n");
+    /*printf("Yes.......\n");*/
 }

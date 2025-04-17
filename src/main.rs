@@ -27,7 +27,7 @@ fn main() {
 
     let head = start (argc, c_argv, command_lines);
 
-    println!("argc: {}", argc);
+    /*println!("argc: {}", argc);*/
 
     let arg_help = find_arg (head, command_lines, "h");
     if !arg_help.is_null() || argc < 2 {
