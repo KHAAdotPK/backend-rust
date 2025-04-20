@@ -7,12 +7,121 @@ use std::{io::{Read, Write}, net::TcpStream, ptr::null, str};
 use crate::modules::{model::{content::{Content, ContentBody}, dict::{Dict, DictBody}}, constants::{self, DEFAULT_IMAGE_WIDTH, DEFAULT_IMAGE_HEIGHT, DEFAULT_PNG_BIT_DEPTH}};
 use regex::bytes::Regex; // For byte string matching
 
-use super::read_write::{read, exists};
+use super::read_write::{read, exists, write};
 
 extern {
     
     fn bitmap_font(pixels: *mut u8, height: u32, width: u32);    
 }
+
+pub fn get_dict_u8(content: &Content) -> Dict {
+
+    /*let mut dict = Dict {
+        dict: Vec::new(),
+        dict_u8: Vec::new(),
+    };*/
+
+    let mut dict = Dict::new();
+
+    for line in content.get_content().split(constants::END_OF_SINGLE_HEADER_LINE_MARKER) 
+    {   
+        // Skip empty lines or lines without ':' delimiter
+        if !line.contains(constants::KEY_VALUE_DELIMITER) {
+
+            if (dict.len_u8() == 0 && dict.len() == 0) {
+                //println!("--> {}", cleaned);
+    
+                // Split request line by space
+                let parts: Vec<&str> = line.split_whitespace().collect();
+    
+                if parts.len() == 3 {
+    
+                    let method = parts[0];
+                    let uri = parts[1];
+                    let http_version = parts[2];
+        
+                    dict.update("METHOD".to_string(), method.to_string());
+                    dict.update("RESOURCE_URI".to_string(), uri.to_string());
+                    dict.update("HTTP_VERSION".to_string(), http_version.to_string());
+        
+                    dict.update_u8("METHOD".to_string(), method.as_bytes().to_vec());
+                    dict.update_u8("RESOURCE_URI".to_string(), uri.as_bytes().to_vec());
+                    dict.update_u8("HTTP_VERSION".to_string(), http_version.as_bytes().to_vec());                 
+                }
+            }
+
+            continue;
+        }
+
+        let parts: Vec<&str> = line.splitn(2, constants::KEY_VALUE_DELIMITER).collect();
+
+        if parts.len() == 2 {
+
+            let key = parts[0].trim().to_string();
+            let value_bytes = parts[1].trim().as_bytes().to_vec();
+            dict.update_u8(key, value_bytes);
+        }
+    }
+
+    dict
+}
+
+
+/*
+pub fn get_dict_u8(content: &Content) -> Dict {
+
+    let mut dict = Dict::new();
+
+    for line in content.get_content().split(constants::LINE_DELIMITER_SLASH_N) {
+        // Clean line from any trailing \r
+        let cleaned = line.trim_end_matches(constants::LINE_DELIMITER_SLASH_R).trim();
+
+        if cleaned.is_empty() {
+            continue;
+        }
+
+        if (dict.len_u8() == 0 && dict.len() == 0) {
+            //println!("--> {}", cleaned);
+
+            // Split request line by space
+            let parts: Vec<&str> = cleaned.split_whitespace().collect();
+
+            if parts.len() == 3 {
+
+                let method = parts[0];
+                let uri = parts[1];
+                let http_version = parts[2];
+    
+                dict.update("METHOD".to_string(), method.to_string());
+                dict.update("RESOURCE_URI".to_string(), uri.to_string());
+                dict.update("HTTP_VERSION".to_string(), http_version.to_string());
+    
+                dict.update_u8("METHOD".to_string(), method.as_bytes().to_vec());
+                dict.update_u8("RESOURCE_URI".to_string(), uri.as_bytes().to_vec());
+                dict.update_u8("HTTP_VERSION".to_string(), http_version.as_bytes().to_vec());
+
+                continue;
+            }
+        }
+
+        // Split using KEY_VALUE_DELIMITER
+        if let Some((key, value)) = cleaned.split_once(constants::KEY_VALUE_DELIMITER) {
+            let key_trimmed = key.trim();
+            let value_trimmed = value.trim();
+
+            // Update string-based dict
+            dict.update(key_trimmed.to_string(), value_trimmed.to_string());
+
+            // Update byte-based dict
+            dict.update_u8(
+                key_trimmed.to_string(),
+                value_trimmed.as_bytes().to_vec(),
+            );
+        }
+    }
+
+    dict
+}*/
 
 pub fn get_dict(content: &Content) -> /*Vec<Vec<String>>*/ Dict {
 
@@ -23,7 +132,7 @@ pub fn get_dict(content: &Content) -> /*Vec<Vec<String>>*/ Dict {
     for line in content.get_content().split(constants::LINE_DELIMITER_SLASH_N).collect::<Vec<&str>>() {
 
         let mut key_value_pair: Vec<String> = Vec::new();
-       
+               
         for token in (line.split(constants::LINE_DELIMITER_SLASH_R).collect::<Vec<&str>>()[0]).split(constants::KEY_VALUE_DELIMITER).collect::<Vec<&str>>() {
             
             key_value_pair.push(token.to_string());
@@ -93,10 +202,219 @@ pub fn get_dict(content: &Content) -> /*Vec<Vec<String>>*/ Dict {
         
     }
      */
+
+    //println!(" -------> --------> {}", dict.find("Content-Type").to_string());
+
+    /*let pair = dict.find("Content-Type");
+        
+    if pair.len() > 0 {
+
+        for token in pair[1].split(" ") {
+
+            println!("Content-Type-token =: {}", token);
+        }
+    }*/
     
     // return 
     dict
 }
+
+fn get_header_u8(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
+    let mut buffer = [0; constants::SIZE_OF_SINGLE_READ];
+    let mut content = Content { content: Vec::new(), content_length: 0 };
+    let mut dict = Dict::new();
+    let mut full_buffer = Vec::<u8>::new();
+    let mut content_length: usize = 0;
+
+    let multipart_end_of_request_re = Regex::new(r"--AudioUploadBoundary\d+--\r\n$").unwrap();
+    let form_data_end_of_request_re = Regex::new(r"(?m)Address.SoundFileName=").unwrap();
+
+    loop {
+        match stream.read(&mut buffer) {
+            Ok(size) => {                
+                full_buffer.extend_from_slice(&buffer[..size]);
+
+                content = Content {content: full_buffer.clone(), content_length: full_buffer.len(),};
+
+                dict = get_dict_u8(&content);
+
+                if dict.len() > 0 && content_length == 0 {
+                    
+                    let content_length_vec: Option<&Vec<u8>> = dict.find_u8("Content-Length");
+
+                    match content_length_vec {
+
+                        Some(content_length_vec) => {
+                            if let Ok(parsed) = String::from_utf8_lossy(content_length_vec).trim().parse::<usize>() {
+                                content_length = parsed;
+                            } else {
+                                eprintln!("Failed to parse Content-Length: {:?}", String::from_utf8_lossy(content_length_vec));
+                            }
+                        }
+
+                        None => {
+                            eprintln!("Content-Length key found, but no value present.");
+                        }
+                    }
+
+                    /*if let Some(content_length_vec) = content_length_vec {
+                        if let Ok(parsed) = String::from_utf8_lossy(content_length_vec).trim().parse::<usize>() {
+                            content_length = parsed;
+                        } else {
+                            eprintln!("Failed to parse Content-Length: {:?}", String::from_utf8_lossy(content_length_vec));
+                        }
+                    } else {
+                        eprintln!("Content-Length key found, but no value present.");
+                    }*/
+                }
+            }
+            Err(_e) => {
+                eprintln!("Stream read error.");
+                return Dict::new();
+            }
+        }
+
+        if content_length > 0 {
+            println!("---> Content-Length: {}", content_length);
+
+            //content.get_content().split(constants::START_OF_BODY_MARKER)
+
+            // split into header and body
+            //let header = content.get_content().split(constants::START_OF_BODY_MARKER).next().unwrap();
+            //let body: Vec<u8> = content.get_content().split(constants::START_OF_BODY_MARKER).last().unwrap();
+
+            /*if content_length <= body.len() {
+                break;
+            }*/
+
+            // b"\r\n\r\n"
+
+            //if let Some(pos) = twoway::find_bytes(content.get_content(), constants::START_OF_BODY_MARKER.as_bytes()) {
+            if let Some(pos) = content.get_content_vec().windows(4).position(|window| window == constants::START_OF_BODY_MARKER.as_bytes()) {
+
+                let header_bytes = &content.get_content()[..pos];
+
+                let body_bytes = &content.get_content_vec()[(pos + 4)..]; // +4 to skip the "\r\n\r\n"
+
+                if body_bytes.len() >= content_length {
+                    
+                    //println!("---> Body length: {}", body_bytes.len());
+
+                    if get_body_as_well {
+
+                        dict.update_u8("BODY".to_string(), body_bytes.to_vec());
+                    }
+                    
+                    break;
+                }                
+                
+                /*let header = String::from_utf8_lossy(header_bytes).to_string();
+                let header_dict = get_dict_u8(&Content { content: header_bytes.to_vec(), content_length: header_bytes.len() });
+                dict.dict_u8.extend(header_dict.dict_u8);*/
+            }
+        }
+
+        /*if form_data_end_of_request_re.is_match(&full_buffer)|| multipart_end_of_request_re.is_match(&full_buffer) {
+
+            content = Content {content: full_buffer.clone(), content_length: full_buffer.len(),};
+
+            println!("{}", String::from_utf8_lossy(content.get_content().as_bytes()));
+
+            break;
+        }*/
+    }
+
+    // If get_body_as_well is false, return just the headers
+    /*if !get_body_as_well {
+        return get_dict_u8(&content);
+    }*/
+
+    // If body is requested, return full dict with body info
+    //return get_dict_u8(&content); // You can modify this part to also parse body if needed
+
+    dict
+}
+
+
+/* fn get_header_u8(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
+    
+    let mut buffer = [0; constants::SIZE_OF_SINGLE_READ];
+    let mut content = Content {content: Vec::new(), content_length: 0};
+    let mut dict = Dict::new();  
+    let mut full_buffer = Vec::<u8>::new();
+
+    let mut content_length: usize = 0;
+
+    let multipart_end_of_request_re = Regex::new(r"--AudioUploadBoundary\d+--\r\n$").unwrap();
+    let form_data_end_of_request_re = Regex::new(r"(?m)Address.SoundFileName=").unwrap();   
+
+    loop {        
+        match stream.read(&mut buffer) {
+
+            Ok(size) => {
+                
+                full_buffer.extend_from_slice(&buffer[..size]);
+                
+                content = Content {content: full_buffer.clone(), content_length: full_buffer.len()};
+                
+                dict = get_dict_u8(&content);
+
+                if dict.len() > 0 && content_length == 0 {
+
+                    let content_length_vec: Vec<String> = dict.find("Content-Length");
+
+                    if content_length_vec.len() > 0 {
+                        if let Ok(parsed) = content_length_vec[1].trim().parse::<usize>() {
+                            content_length = parsed;
+                        } else {
+                            eprintln!("Failed to parse Content-Length: {:?}", content_length_vec[1]);
+                        }
+                    } else {
+                        eprintln!("Content-Length key found, but no value present.");
+                    }
+
+
+                    /*if content_length_vec.len() > 0 {
+
+                        //content_length = dict.find("Content-Length")[1].parse().unwrap();
+
+                        content_length = content_length_vec[1].parse().unwrap();
+                    }*/
+                }
+            }
+
+            Err(_e) => {
+
+                return Dict::new();
+            }
+        }
+
+        if content_length > 0 {
+         
+            println!("---> {}", content_length);
+            
+            //break;
+        }
+
+        if form_data_end_of_request_re.is_match(&full_buffer) {
+
+            content = Content {content: full_buffer.clone(), content_length: full_buffer.len()};
+
+            println!("{}", String::from_utf8_lossy(content.get_content().as_bytes()));
+
+            break;
+        } else if multipart_end_of_request_re.is_match(&full_buffer) {
+
+            content = Content {content: full_buffer.clone(), content_length: full_buffer.len()};
+
+            //println!("{}", String::from_utf8_lossy(content.get_content().as_bytes()));
+            
+            break;
+        }        
+    }
+
+    return Dict::new() 
+}*/
 
 fn get_header(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
 
@@ -264,6 +582,25 @@ fn get_header(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
             
     dict
 }
+
+pub fn handle_connection_u8(mut stream: TcpStream, config_dict: &Dict) {
+
+    let mut content = Content {content: Vec::new(), content_length: 0};
+    let document_root = config_dict.find("DocumentRoot");
+
+    if !(document_root.len() > 1) {
+
+        /*
+            Send status code 500, Internal server error
+         */
+         content.set_content("<html><head><title>index.html</title></head><body><p>Internal server error.</p></body></html>");
+         Write::write_all(&mut stream, ("HTTP/1.1 500 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap(); 
+
+         return
+    }
+
+    let header_dict = get_header_u8(&stream, true);
+} 
 
 pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
 
@@ -464,24 +801,71 @@ pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
 
                 "/multipart.html" => {
 
+                    let re = Regex::new(r"\s*--AudioUploadBoundary\d+--\r\n$").unwrap();
+                    
+                    // Handle multipart
                     let _keys = header_dict.keys();
                     let _values = header_dict.values();
 
-                    //let _body = header_dict.find("BODY");
+                    let _body = header_dict.find("BODY");
                     //let _ct = header_dict.find("Content-Type");
                     //let _cl = header_dict.find("Content-Length");
 
                     //String::from_utf8_lossy(content.get_content().as_bytes())
 
+                    /*
+                        SONI
+                        This code is perfect, and working and it prints all the dictionary key and value pairs including the body
+                     */
+                    /*
                     _keys.iter().for_each(|key| {
                         println!("{} = {}", key, String::from_utf8_lossy(header_dict.find(key)[1].as_bytes()));
-                    }); 
-                                        
+                    });
+                    */
+                    
+                    let mut _boundary = header_dict.find("Content-Type")[1].split("boundary=").last().unwrap().to_string();
+                    _boundary = "--".to_string() + &_boundary.to_string() + "--";
+                    
+                    println!("{}", _boundary);
+                    
+                    /*for i in 0.._body.len() {
+                        println!("{}", _body[i].tr);
+                    }*/
+
+                    // Join _body into one String
+                    //let joined_body = _body[1].join(""); // or use "\n" if needed
+
+                    // Now remove the boundary from the end of _body
+                    //let _body = joined_body.strip_suffix(&_boundry).unwrap_or(&joined_body).to_string();
+
+                    // Remove _boundry from end
+                    //let cleaned_body = _body
+                    //    .strip_suffix(&_boundry)
+                    //    .unwrap_or(&_body)
+                    //    .to_string();
+                    
+                    //let b_value = _boundry[1].split("boundary=").last();
+                    
+                    //println!("--> {} = {}", _boundry[1], b_value.unwrap().to_string());
+                    
                     //println!("{} = {}", _ct[0], _ct[1]);
                     //println!("{} = {}", _cl[0], _cl[1]);
+
+                    //println!("{}", String::from_utf8_lossy(cleaned_body.as_bytes()));
                     
                     // Parse the body
-                                        
+
+                    // Now remove `_boundary` from `_body[1]`
+                    let cleaned_body = _body[1].replace(&_boundary, "");
+
+                    println!("{}", String::from_utf8_lossy(cleaned_body.as_bytes()));
+
+                    let mut contentR = Content {content: Vec::new(), content_length: cleaned_body.len()};
+
+                    contentR.set_content_vec(cleaned_body.as_bytes().to_vec()); 
+                    
+                    write("soni.3gp", contentR);
+                                                            
                     content.set_content("[\"multipart getting through.\"]");
                     Write::write_all(&mut stream, ("HTTP/1.1 200 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();                    
                 }

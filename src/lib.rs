@@ -27,8 +27,8 @@ pub fn start_server(conf_file: &'static str) {
                 match s {
 
                     Ok(stream) => {
-                        
-                        sundry::handle_connection(stream, &config_dict);
+                                                
+                        sundry::handle_connection_u8(stream, &config_dict);
                     }
 
                     Err(e) => {
