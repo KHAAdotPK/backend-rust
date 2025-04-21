@@ -9,6 +9,7 @@ pub trait DictBody {
     fn find(&self, key: &str) -> Vec<String>;
     //fn find_u8(&self, key: &str) -> Vec<u8>;
     fn find_u8(&self, key: &str) -> Option<&Vec<u8>>;
+    fn find_u8_all(&self, key: &str) -> Option<Vec<(String, Vec<u8>)>>;
     fn keys(&self) -> Vec<String>;
     fn keys_u8(&self) -> Vec<String>; 
     fn len(&self) -> usize;
@@ -17,6 +18,7 @@ pub trait DictBody {
     fn update(&mut self, key: String, value: String) -> usize;
     fn update_u8(&mut self, key: String, value: Vec<u8>) -> usize;
     fn values(&self) -> Vec<String>;
+    fn values_u8(&self) -> Vec<Vec<u8>>;
 }
 
 // Properties
@@ -59,6 +61,22 @@ impl DictBody for Dict {
         None
     }
 
+    fn find_u8_all(&self, key: &str) -> Option<Vec<(String, Vec<u8>)>> {
+    
+        // Iterator chain: filter by key and collect results into a new Vec
+        let matches: Vec<(String, Vec<u8>)> =self.dict_u8 /* struct (likely of type Vec<(String, Vec<u8>)>) */
+            .iter() /* This turns the Vec into an iterator, you're working with something that produces values like &(String, Vec<u8>) and allowing us to to use filter and map in loop */
+            .filter(|(k, _)| k == key) /* On each tuple: we match the first element k and ignore the second (_), it only keeps elements where the key k matches the key passed to the function */
+            .map(|(k, v)| (k.clone(), v.clone())) /* .iter() gives you &String and &Vec<u8>, since you want to return owned String and Vec<u8>, you use clone(). | (k, v) | destructures the tuple so you can work with k and v separately. .map(...) transforms the filtered borrowed values into tuple with owned values */
+            .collect(); /* This consumes the iterator and collects the results into a new Vec<(String, Vec<u8>)> */
+
+        if matches.is_empty() {
+            None
+        } else {
+            Some(matches)
+        }     
+    }
+    
     /*fn find_u8(&self, key: &str) -> Vec<u8> {
 
         for pair in &self.dict_u8 {
@@ -177,4 +195,15 @@ impl DictBody for Dict {
         // return
         ret
     }
+    
+    fn values_u8(&self) -> Vec<Vec<u8>> {
+        let mut ret: Vec<Vec<u8>> = Vec::new();
+    
+        for (_k, v) in &self.dict_u8 {
+            ret.push(v.clone());
+        }
+    
+        ret
+    }
+    
 }

@@ -600,14 +600,24 @@ pub fn handle_connection_u8(mut stream: TcpStream, config_dict: &Dict) {
     }
 
     let header_dict = get_header_u8(&stream, true);
-
     
-
     let _keys = header_dict.keys_u8();
-
+    let _values = header_dict.values_u8();
+    
     _keys.iter().for_each(|key| {
-        println!("{} = {}", key, String::from_utf8_lossy(header_dict.find_u8(key).unwrap()));
-    });
+
+       let pairs: Option<Vec<(String, Vec<u8>)>> =  header_dict.find_u8_all(key);
+        
+        match pairs {
+            Some(pairs) => {
+                for pair /* a tuple */ in pairs /* Vec of tuples */ {
+                    /* To access tuple elements, use: `.0` and `.1` */
+                    println!("{} = {}", pair.0, String::from_utf8_lossy(&pair.1));
+                }
+            }
+            None => {}
+        }
+    });    
 } 
 
 pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
