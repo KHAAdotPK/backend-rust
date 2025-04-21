@@ -10,6 +10,7 @@ pub trait DictBody {
     //fn find_u8(&self, key: &str) -> Vec<u8>;
     fn find_u8(&self, key: &str) -> Option<&Vec<u8>>;
     fn keys(&self) -> Vec<String>;
+    fn keys_u8(&self) -> Vec<String>; 
     fn len(&self) -> usize;
     fn len_u8(&self) -> usize;
     fn new() -> Self;
@@ -85,6 +86,26 @@ impl DictBody for Dict {
         }
 
         // return
+        ret
+    }
+
+    fn keys_u8(&self) -> Vec<String> {
+
+        let mut ret = Vec::<String>::new();
+
+        /*for vec in &self.dict_u8 {
+
+            if vec.0.len() > 0 {
+            
+                ret.push(vec.0.to_string());
+            }
+        }*/
+
+        for (k, v) in &self.dict_u8 {
+                        
+            ret.push(k.to_string());
+        }
+        
         ret
     }
     

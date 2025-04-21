@@ -600,6 +600,14 @@ pub fn handle_connection_u8(mut stream: TcpStream, config_dict: &Dict) {
     }
 
     let header_dict = get_header_u8(&stream, true);
+
+    
+
+    let _keys = header_dict.keys_u8();
+
+    _keys.iter().for_each(|key| {
+        println!("{} = {}", key, String::from_utf8_lossy(header_dict.find_u8(key).unwrap()));
+    });
 } 
 
 pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
