@@ -292,9 +292,9 @@ fn get_header_u8(mut stream: &TcpStream, get_body_as_well: bool) -> Dict {
             //if let Some(pos) = twoway::find_bytes(content.get_content(), constants::START_OF_BODY_MARKER.as_bytes()) {
             if let Some(pos) = content.get_content_vec().windows(4).position(|window| window == constants::START_OF_BODY_MARKER.as_bytes()) {
 
-                let header_bytes = &content.get_content()[..pos];
+                let header_bytes: &str = &content.get_content()[..pos];
 
-                let body_bytes = &content.get_content_vec()[(pos + 4)..]; // +4 to skip the "\r\n\r\n"
+                let body_bytes: &[u8] = &content.get_content_vec()[(pos + 4)..]; // +4 to skip the "\r\n\r\n"
 
                 if body_bytes.len() >= content_length {
                     
@@ -601,10 +601,21 @@ pub fn handle_connection_u8(mut stream: TcpStream, config_dict: &Dict) {
 
     let header_dict = get_header_u8(&stream, true);
     
-    let _keys = header_dict.keys_u8();
-    let _values = header_dict.values_u8();
+    let _keys: Vec<String> = header_dict.keys_u8();
+    let _values: Vec<Vec<u8>> = header_dict.values_u8();
+
+    if _keys.len() != _values.len() {
+                
+        /*
+            Send status code 500, Internal server error
+         */
+        content.set_content("<html><head><title>index.html</title></head><body><p>Internal server error.</p></body></html>");               
+        Write::write_all(&mut stream, ("HTTP/1.1 500 OK\r\nConnection: Close\r\n".to_string() + "Content-Length: ".to_string().as_str() + content.get_content_length().to_string().as_str() + "\r\n\r\n" + content.get_content()).as_bytes()).unwrap();
+                        
+        return
+    }
     
-    _keys.iter().for_each(|key| {
+    /*_keys.iter().for_each(|key| {
 
        let pairs: Option<Vec<(String, Vec<u8>)>> =  header_dict.find_u8_all(key);
         
@@ -617,7 +628,12 @@ pub fn handle_connection_u8(mut stream: TcpStream, config_dict: &Dict) {
             }
             None => {}
         }
-    });    
+    });*/
+    
+    /*_values.iter().for_each(|value| {
+
+        println!("{}", String::from_utf8_lossy(value));
+    });*/
 } 
 
 pub fn handle_connection(mut stream: TcpStream, config_dict: &Dict) {
